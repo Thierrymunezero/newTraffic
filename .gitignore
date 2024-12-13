@@ -1,0 +1,16 @@
+# Dependency directories
+node_modules/
+images/
+
+# Environment variables
+.env
+
+# Ignore specific files
+correct.ejs
+correct.ejs
+correctendquiz.ejs
+endcorrect.ejs
+try.css
+firstendquiz.css
+server1correct.js
+serveroneerror.js
