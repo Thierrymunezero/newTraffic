@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login / Signup</title>
+    <link rel="stylesheet" href="/styles.css" />
+
+    <script>
+        function toggleForms() {
+            const loginForm = document.getElementById("login-form");
+            const signupForm = document.getElementById("signup-form");
+            if (loginForm.style.display === "none") {
+                loginForm.style.display = "block";
+                signupForm.style.display = "none";
+            } else {
+                loginForm.style.display = "none";
+                signupForm.style.display = "block";
+            }
+        }
+
+        function togglePassword(fieldId) {
+            const passwordField = document.getElementById(fieldId);
+            passwordField.type = passwordField.type === "password" ? "text" : "password";
+        }
+
+        // Handle form submission for login
+        async function handleLogin(event) {
+            event.preventDefault(); 
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("userpassword").value;
+            const errorMsg = document.getElementById("login-error");
+
+            try {
+                const response = await fetch("/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    window.location.href = "/";
+                } else {
+                    const data = await response.json();
+                    errorMsg.textContent = data.message || "Login failed. Please try again.";
+                }
+            } catch (error) {
+                errorMsg.textContent = "An error occurred. Please try again.";
+            }
+        }
+
+        // Handle form submission for signup
+        async function handleSignup(event) {
+            event.preventDefault();
+            const username = document.getElementById("signup-username").value;
+            const password = document.getElementById("signup-user_password").value;
+            const errorMsg = document.getElementById("signup-error");
+
+            try {
+                const response = await fetch("/signup", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    window.location.href = "/";
+                } else {
+                    const data = await response.json();
+                    errorMsg.textContent = data.message || "Signup failed. Please try again.";
+                }
+            } catch (error) {
+                errorMsg.textContent = "An error occurred. Please try again.";
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="form-container">
+        <!-- Login Form -->
+        <div id="login-form">
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <h1 id="form-title">Login</h1>
+                <label for="username">Username:</label>
+                <input type="text" name="username" id="username" aria-label="Enter your username" required />
+
+                <label for="userpassword">Password:</label>
+                <input type="password" name="password" id="userpassword" aria-label="Enter your password" required />
+
+                <div class="show-password">
+                    <input type="checkbox" onclick="togglePassword('userpassword')" /> Show Password
+                </div>
+
+                <p id="login-error" class="error-message"></p>
+                <button type="submit">Login</button>
+            </form>
+            <p>
+                Don't have an account?
+                <a href="#" onclick="toggleForms();">Signup here</a>
+            </p>
+        </div>
+
+        <!-- Signup Form -->
+        <div id="signup-form" style="display: none;">
+            <form id="signupForm" onsubmit="handleSignup(event)">
+                <h1 id="form-title">Signup</h1>
+                <label for="signup-username">Username:</label>
+                <input type="text" name="username" id="signup-username" aria-label="Enter your username for signup" required />
+
+                <label for="signup-user_password">Password:</label>
+                <input type="password" name="password" id="signup-user_password" aria-label="Enter your password for signup" required />
+
+                <div class="show-password">
+                    <input type="checkbox" onclick="togglePassword('signup-user_password')" /> Show Password
+                </div>
+
+                <p id="signup-error" class="error-message"></p>
+                <button type="submit">Signup</button>
+            </form>
+            <p>
+                Already have an account?
+                <a href="#" onclick="toggleForms();">Login here</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

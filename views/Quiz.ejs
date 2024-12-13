@@ -1,0 +1,220 @@
+
+
+
+<!---
+
+what to do only put also the field to but image if option for answer is image base on this structure of image.const questions = [{"id":3,"question":"what is the king of the jungle","question_image":null,
+"answers":[{"id":21,"answer_text":"hen","is_correct":false,"answer_image":null},
+{"id":22,"answer_text":"lion","is_correct":true,"answer_image":null},
+{"id":23,"answer_text":"rat","is_correct":false,"answer_image":null},
+{"id":24,"answer_text":"cow","is_correct":false,"answer_image":null}]}]
+-->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/quiz.css" />
+    <title>Interactive Quiz</title>
+    <script>
+  const url= "http://10.200.17.34:8000/api/quizzes/"
+  const userToken = localStorage.getItem('userToken');
+  if (!userToken) {
+    alert('You are not authenticated. Please log in.');
+    window.location.href = '/auth';
+  }
+
+  const questions = <%- JSON.stringify(questions) %>;
+  let currentQuestionIndex = 0;
+  let userAnswers = new Array(questions.length).fill(null);
+  let timeRemaining = 20 * 60;
+
+  function startTimer() {
+    const timerDisplay = document.getElementById("timer");
+    const interval = setInterval(() => {
+      if (timeRemaining <= 0) {
+        clearInterval(interval);
+        alert("Time is up! Submitting your quiz.");
+        submitQuiz();
+      } else {
+        const minutes = Math.floor(timeRemaining / 60);
+        const seconds = timeRemaining % 60;
+        timerDisplay.innerText = `Time Remaining: ${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+        timeRemaining--;
+      }
+    }, 1000);
+  }
+
+  function showQuestion(index) {
+    const questionsElements = document.querySelectorAll(".question");
+    questionsElements.forEach((q, i) => {
+      q.style.display = i === index ? "block" : "none";
+    });
+
+    document.getElementById("question-number").innerText = `Question ${index + 1} of ${questions.length}`;
+    document.getElementById("prev-btn").style.display = index === 0 ? "none" : "inline-block";
+    document.getElementById("next-btn").style.display = index === questions.length - 1 ? "none" : "inline-block";
+  }
+
+  function saveAnswer(index) {
+  const selectedOption = document.querySelector(`input[name="answers[${index}]"]:checked`);
+  if (selectedOption) {
+    userAnswers[index] = selectedOption.value; // Store answer.id
+    document.getElementById(`btn-${index}`).classList.add("answered");
+  }
+}
+
+function collectAnswers() {
+  return userAnswers.map((answer, index) => {
+    const selectedAnswerId = answer ? parseInt(answer, 10) : null; // Ensure ID is a number
+    return {
+      question_id: questions[index].id,
+      selected_answer_id: selectedAnswerId
+    };
+  }).filter(answer => answer.selected_answer_id !== null);
+}
+
+
+
+
+  function validateSubmission() {
+    const unanswered = userAnswers.filter((answer) => answer === null).length;
+    if (unanswered > 0) {
+      return confirm(`You have ${unanswered} unanswered questions. Do you still want to submit?`);
+    }
+    return true;
+  }
+
+  function submitQuiz() {
+    if (!validateSubmission()) {
+      return;
+    }
+
+    const form = document.querySelector("form");
+    const hiddenAnswers = document.getElementById('hidden-answers');
+    hiddenAnswers.value = JSON.stringify(collectAnswers()); // Store answers as JSON
+
+    const formData = new FormData(form);
+    formData.append("answers", hiddenAnswers.value); // Append JSON data
+
+    fetch(form.action, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        answers: hiddenAnswers.value
+      }),
+    })
+    .then(response => response.text()) // Get the HTML response
+    .then(html => {
+      // Replace current page with the rendered endquiz page
+      document.documentElement.innerHTML = html;
+    })
+    .catch(error => {
+      alert("Error submitting quiz.");
+      console.error(error);
+    });
+  }
+
+  window.onload = function () {
+    showQuestion(currentQuestionIndex);
+    startTimer();
+  };
+
+
+    </script>
+  </head>
+  <body>
+    <div class="quiz-container">
+      <div id="timer" aria-live="polite">Loading timer...</div>
+
+      <div class="question-navigation" aria-labelledby="question-number">
+        <% questions.forEach((_, index) => { %>
+        <button
+          class="question-btn"
+          id="btn-<%= index %>"
+          onclick="showQuestion(<%= index %>)"
+        >
+          <%= index + 1 %>
+        </button>
+        <% }); %>
+      </div>
+
+      <h2 id="question-number"></h2>
+
+      <form
+        action="/quiz"
+        method="POST"
+        onsubmit="event.preventDefault(); submitQuiz();"
+      >
+        <input type="hidden" name="userToken" value="<%= userToken %>" />
+        <input type="hidden" id="hidden-answers" name="answers" value="" />
+
+        <% questions.forEach((q, index) => { %>
+        <div class="question" style="display: none">
+          <h3><%= q.question %></h3>
+          <% if (q.question_image) { %>
+          <img
+            src= "https://app-dxd6.onrender.com<%= q.question_image %>"
+            alt="Question Image"
+            class="question-image"
+          />
+          <% } %>
+
+          <div class="options">
+            <% q.answers.forEach((answer, optIndex) => { %>
+              <label>
+                <input
+                  type="radio"
+                  name="answers[<%= index %>]"
+                  value="<%= answer.id %>"
+                  onchange="saveAnswer(<%= index %>)"
+                />
+                <strong><%= String.fromCharCode(65 + optIndex) %>)</strong>
+                <% if (answer.answer_image) { %>
+                  <img
+                    src="https://app-dxd6.onrender.com<%= answer.answer_image %>"
+                    alt="Answer Image"
+                    class="answer-image"
+                  />
+                <% } %>
+                <% if (answer.answer_text) { %>
+                  <span><%= answer.answer_text %></span>
+                <% } %>
+              </label>
+            <% }); %>
+          </div>
+          
+          
+        </div>
+        <% }); %>
+
+        <div class="navigation">
+          <button
+            type="button"
+            id="prev-btn"
+            onclick="showQuestion(currentQuestionIndex - 1)"
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            id="next-btn"
+            onclick="showQuestion(currentQuestionIndex + 1)"
+          >
+            Next
+          </button>
+
+          <button
+            type="submit"
+            class="btn"
+            onclick="document.getElementById('hidden-answers').value = JSON.stringify(collectAnswers())"
+          >
+            Submit Quiz
+          </button>
+        </div>
+      </form>
+    </div>
+  </body>
+</html>

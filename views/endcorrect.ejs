@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Results</title>
+  <link rel="stylesheet" href="/endquiz.css">
+  <script>
+    // Frontend logic for question navigation
+   // function showQuestion(index) {
+     // const questions = document.querySelectorAll(".question");
+     // questions.forEach((q, i) => {
+       // q.style.display = i === index ? "block" : "none";
+    //  });
+    //  document.querySelectorAll(".nav-button").forEach((btn, i) => {
+    //    btn.classList.toggle("active", i === index);
+    //  });
+    //}
+// added function
+    function showQuestion(index) {
+  const questions = document.querySelectorAll(".question");
+  questions.forEach((q, i) => {
+    q.style.display = i === index ? "block" : "none";
+  });
+  
+  // Highlight active question navigation button
+  const navButtons = document.querySelectorAll(".nav-button");
+  navButtons.forEach((btn, i) => {
+    btn.classList.toggle("active", i === index);
+  });
+}
+
+
+  </script>
+
+</head>
+<body>
+  <div class="container">
+    <h1>Quiz Results</h1>
+    <p>Your Score: <strong><%= score %></strong></p>
+    <p>
+      Status: 
+      <span class="<%= passed ? 'correct' : 'incorrect' %>">
+        <%= passed ? 'Passed' : 'Failed' %>
+      </span>
+      <a href="/" class="retry-button">Take the Quiz Again</a>
+    </p>
+
+    <!-- Question Navigation -->
+    <div>
+      <h2>Review Questions</h2>
+      <% results.forEach((_, index) => { %>
+        <button 
+          class="nav-button <%= index === 0 ? 'active' : '' %>" 
+          onclick="showQuestion(<%= index %>)">
+          Question <%= index + 1 %>
+        </button>
+      <% }); %>
+    </div>
+
+    <!-- Questions Section -->
+    <div>
+      <% results.forEach((result, index) => { %>
+        <div class="question" style="<%= index === 0 ? '' : 'display: none;' %>">
+          <h3>Question <%= index + 1 %>: <%= result.question_text %></h3>
+          <% if (result.question_image) { %>
+            <img src="http://10.200.17.34:8000<%= result.question_image %>" alt="Question Image" style="max-width: 100%; height: auto;">
+          <% } %>
+
+          <!-- Options -->
+          <ul>
+            <% result.answers.forEach(option => { %>
+              <li style="color: <%= option.selected ? 'blue' : 'black' %>;">
+                <% if (option.answer_text) { %>
+                  <span><%= option.answer_text %></span>
+                <% } %>
+                <% if (option.answer_image) { %>
+                  <img src="http://10.200.17.34:8000<%= option.answer_image %>" alt="Option Image" style="max-width: 200px; height: auto;">
+                <% } %>
+                <% if (option.is_correct) { %>
+                  <span class="correct">[Correct]</span>
+                <% } %>
+                <% if (option.selected) { %>
+                  <span class="<%= option.is_correct ? 'correct' : 'incorrect' %>">
+                    [Your Answer]
+                  </span>
+                <% } %>
+              </li>
+            <% }); %>
+          </ul>
+
+          <!-- Result -->
+          <p>
+            <strong>Correct Answer:</strong> <%= result.correct_answer %>
+            <% if (result.correct_answer_image) { %>
+              <img src="http://10.200.17.34:8000<%= result.correct_answer_image %>" alt="Correct Answer Image" style="max-width: 200px; height: auto;">
+            <% } %>
+          </p>
+          <p>
+            <strong>Your Answer:</strong> <%= result.selected_answer %>
+            <% if (result.selected_answer_image) { %>
+              <img src="http://10.200.17.34:8000<%= result.selected_answer_image %>" alt="Selected Answer Image" style="max-width: 200px; height: auto;">
+            <% } %>
+          </p>
+          <p>
+            <span class="<%= result.is_correct ? 'correct' : 'incorrect' %>">
+              <%= result.is_correct ? 'Correct!' : 'Incorrect' %>
+            </span>
+          </p>
+        </div>
+      <% }); %>
+    </div>
+  </div>
+</body>
+</html>

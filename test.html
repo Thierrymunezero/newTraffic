@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quiz App</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: gray;
+      }
+
+      #auth-container,
+      #quiz-container {
+        max-width: 600px;
+        margin: auto;
+        background: white;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      button {
+        margin-top: 20px;
+        padding: 10px;
+        border: none;
+        background-color: red;
+        color: white;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background-color: whitesmoke;
+      }
+
+      input {
+        width: 100%;
+        margin: 10px 0;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="auth-container">
+      <h2 id="auth-header">Login</h2>
+      <form id="login-form">
+        <input type="text" id="username" placeholder="Username" required />
+        <input type="password" id="password" placeholder="Password" required />
+        <button type="submit">Login</button>
+        <p>Don't have an account? <a href="#" id="show-signup">Sign up!</a></p>
+      </form>
+
+      <form id="signup-form" style="display: none">
+        <input
+          type="text"
+          id="signup-username"
+          placeholder="Username"
+          required
+        />
+        <input
+          type="password"
+          id="signup-password"
+          placeholder="Password"
+          required
+        />
+        <button type="submit">Sign Up</button>
+        <p>Already have an account? <a href="#" id="show-login">Login!</a></p>
+      </form>
+    </div>
+
+    <div id="quiz-container" style="display: none">
+      <h1>Quiz Questions</h1>
+      <div id="questions"></div>
+      <button id="submit-answers">Submit Answers</button>
+      <div id="result"></div>
+    </div>
+
+    <script>
+      const authContainer = document.getElementById("auth-container");
+      const quizContainer = document.getElementById("quiz-container");
+      const questionsDiv = document.getElementById("questions");
+      const submitButton = document.getElementById("submit-answers");
+      const resultDiv = document.getElementById("result");
+
+      // Event listeners for switching between login and signup forms, depending on whichever the user focuses on by writing.
+      document.getElementById("show-signup").addEventListener("click", () => {
+        document.getElementById("signup-form").style.display = "block";
+        document.getElementById("login-form").style.display = "none";
+        document.getElementById("auth-header").innerText = "Sign Up";
+      });
+
+      document.getElementById("show-login").addEventListener("click", () => {
+        document.getElementById("signup-form").style.display = "none";
+        document.getElementById("login-form").style.display = "block";
+        document.getElementById("auth-header").innerText = "Login";
+      });
+
+      // Signup
+      document
+        .getElementById("signup-form")
+        .addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const username = document.getElementById("signup-username").value;
+          const password = document.getElementById("signup-password").value;
+
+          try {
+            const response = await fetch(
+              "http://10.200.17.34:8000/api/user/register/",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password }),
+              }
+            );
+
+            if (!response.ok) {
+              throw new Error("Signup failed: " + response.statusText);
+            }
+
+            alert("Signup successful! You can now log in.");
+            document.getElementById("show-login").click();
+          } catch (error) {
+            console.error(error);
+            alert("Error during signup. Check console for details.");
+          }
+        });
+
+      // Login
+      document
+        .getElementById("login-form")
+        .addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const username = document.getElementById("username").value;
+          const password = document.getElementById("password").value;
+
+          try {
+            const response = await fetch("http://10.200.17.34:8000/api/token/", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ username, password }),
+            });
+
+            if (!response.ok) {
+              throw new Error("Login failed: " + response.statusText);
+            }
+
+            const data = await response.json();
+            localStorage.setItem("token", data.access); // Store token
+            authContainer.style.display = "none";
+            quizContainer.style.display = "block";
+            fetchQuestions(); // Fetching questions once logged in .
+          } catch (error) {
+            console.error(error);
+            alert("Error during login. Check console for details.");
+          }
+        });
+
+      // Fetch questions
+      async function fetchQuestions() {
+        try {
+          const token = localStorage.getItem("token");
+          const response = await fetch("http://10.200.17.34:8000/api/quizzes/", {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(
+              "Failed to fetch questions: " + response.statusText
+            );
+          }
+
+          const quizData = await response.json();
+          console.log(quizData); // for error, and debug@
+          displayQuestions(quizData);
+        } catch (error) {
+          console.error(error);
+          alert("Error fetching questions. Check console for details.");
+        }
+      }
+
+      // Display questions
+      function displayQuestions(questions) {
+        if (!Array.isArray(questions)) {
+          console.error("Expected an array for questions but got:", questions);
+          return; // checking whenever is it not an array!
+        }
+
+        questionsDiv.innerHTML = ""; // For clearring previous questions
+        questions.forEach((question) => {
+          const questionElement = document.createElement("div");
+          questionElement.innerHTML = `  
+                    <h2 data-id="${question.id}" style="color:red;">${
+            question.question
+          }<span>${question.id}</span></h2>  
+                    ${question.answers
+                      .map(
+                        (answer) => `  
+                        <div>  
+                            <input type="radio" name="question-${question.id}" value="${answer.id}">  
+                            <label>${answer.answer_text}, ${answer.id}</label>  
+                        </div>  
+                    `
+                      )
+                      .join("")}  
+                `;
+          questionsDiv.appendChild(questionElement);
+        });
+      }
+
+      // here for submitting answers function
+      async function submitAnswers(answers) {
+        try {
+          const response = await fetch("http://10.200.17.34:8000/api/quizzes/", {
+            // Correct endpoint here
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ answers }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to submit answers: " + response.statusText);
+          }
+
+          return await response.json(); // The backend will return the results and you will see them in json format , so that you can be able to manipulate them, and find the overall scrore etc etc . in the below function of Display result.
+        } catch (error) {
+          console.error(error);
+          alert("Error submitting answers. Check console for details.");
+        }
+      }
+
+      // // Display result
+      // function displayResult(data) {
+      //     resultDiv.innerHTML = `<h3>Results:</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+      // }
+      // //Submit answers using below event listener .
+      submitButton.addEventListener("click", async () => {
+        const answers = Array.from(questionsDiv.children)
+          .map((div) => {
+            const questionElement = div.querySelector("h2"); // Find the question header inside this specific div
+            const selectedAnswer = div.querySelector(
+              'input[type="radio"]:checked'
+            );
+
+            if (questionElement && selectedAnswer) {
+              const questionId = questionElement.getAttribute("data-id"); // Safely get data-id from the question header  , to avoid errors.
+              return {
+                question_id: questionId, // Use the actual question ID to submit , it very important
+                selected_answer_id: selectedAnswer.value,
+              };
+            }
+            return null; // when nothing is found here
+          })
+          .filter((answer) => answer !== null); // Only include answered questions
+
+        console.log(answers); // here for checking@
+        const response = await submitAnswers(answers);
+        if (response) {
+          displayResult(response);
+        }
+      });
+      // Here we are displaying all result in the jsonform #
+      function displayResult(data) {
+        resultDiv.innerHTML = `<h3>Results:</h3><pre>${JSON.stringify(
+          data,
+          null,
+          2
+        )}</pre>`;
+      }
+    </script>
+  </body>
+</html>

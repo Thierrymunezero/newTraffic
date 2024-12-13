@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Results</title>
+  <link rel="stylesheet" href="/endquiz.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Quiz Results</h1>
+    <p class="score">Your score: <%= score %> / <%= results.length %></p>
+    <p class="result-message"><%= passed ? 'You passed!' : 'You did not pass. Better luck next time!' %></p>
+
+    <h2>Question Review</h2>
+    <ul class="question-list">
+      <% results.sort((a, b) => a.question_number - b.question_number).forEach((result, index) => { %>
+        <li class="question-item">
+          <p><strong>Question <%= index + 1 %>:</strong> <%= result.question %></p>
+          <ul class="answer-list">
+            <% result.answers.forEach(option => { %>
+              <li class="answer-item <%= option.is_correct ? 'correct' : '' %> <%= option.selected ? 'incorrect' : '' %> <%= option.is_correct && option.selected ? 'highlight' : '' %>">
+                <%= option.answer_text %>
+              </li>
+            <% }) %>
+          </ul>
+          <p>Correct Answer: <span class="correct"><%= result.correct_answer %></span></p>
+          <p>Your Answer: <span class="<%= result.is_correct ? 'correct' : 'incorrect' %>"><%= result.selected_answer %></span></p>
+        </li>
+      <% }) %>
+    </ul>
+
+    <a href="/quiz" class="retry-button">Take the Quiz Again</a>
+  </div>
+</body>
+</html>

@@ -1,0 +1,260 @@
+/* Global Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Body Styles */
+body {
+  background: linear-gradient(135deg, #f0f4f8, #e9eff4);
+  color: #333;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* Main Container */
+.container {
+  width: 90%;
+  max-width: 1200px;
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  margin: 20px;
+  overflow: hidden;
+}
+
+/* Header Section */
+.quiz-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.quiz-header h1 {
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+}
+
+.score-box {
+  background: #ecf0f1;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.score-box p {
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.status {
+  font-size: 1.4rem;
+  font-weight: 500;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.status .correct {
+  color: #27ae60;
+  font-weight: 700;
+}
+
+.status .incorrect {
+  color: #e74c3c;
+  font-weight: 700;
+}
+
+.retry-button {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 12px 30px;
+  background-color: #3498db;
+  color: white;
+  font-size: 1.4rem;
+  text-decoration: none;
+  border-radius: 30px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease-in-out;
+}
+
+.retry-button:hover {
+  background-color: #2980b9;
+  transform: translateY(-3px);
+}
+
+/* Question Navigation */
+.question-navigation {
+  text-align: center;
+  margin-top: 50px;
+}
+
+.nav-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.nav-button {
+  padding: 10px 25px;
+  font-size: 1.3rem;
+  background-color: #bdc3c7;
+  border: none;
+  border-radius: 30px;
+  color: #2c3e50;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.nav-button.active {
+  background-color: #3498db;
+  color: white;
+}
+
+.nav-button:hover {
+  background-color: #2980b9;
+  transform: translateY(-2px);
+}
+
+/* Questions Section */
+.questions-review {
+  margin-top: 40px;
+}
+
+.question {
+  display: none;
+}
+
+.question:first-child {
+  display: block;
+}
+
+.question h3 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #34495e;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.question-image {
+  width: 100%;
+  max-width: 600px;
+  margin-top: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.options {
+  list-style-type: none;
+  margin-top: 30px;
+}
+
+.options li {
+  background-color: #f9f9f9;
+  padding: 18px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.options li:hover {
+  background-color: #ecf0f1;
+  transform: translateY(-2px);
+}
+
+.options li.selected {
+  background-color: #f1c40f;
+}
+
+.options li span {
+  margin-right: 20px;
+  font-size: 1.2rem;
+  color: #34495e;
+}
+
+.correct {
+  color: #2ecc71;
+  font-weight: bold;
+}
+
+.incorrect {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+/* Answer Section */
+.answer-details {
+  margin-top: 40px;
+  padding: 20px;
+  background-color: #f4f6f7;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.answer-details p {
+  font-size: 1.3rem;
+  margin-bottom: 15px;
+  font-weight: 500;
+}
+
+.answer-details .answer-image {
+  max-width: 200px;
+  margin-top: 20px;
+}
+
+.result-status {
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.result-status .correct {
+  color: #27ae60;
+}
+
+.result-status .incorrect {
+  color: #e74c3c;
+}
+
+@media (max-width: 768px) {
+  .container {
+    width: 95%;
+  }
+
+  .quiz-header h1 {
+    font-size: 2.5rem;
+  }
+
+  .score-box p {
+    font-size: 1.4rem;
+  }
+
+  .retry-button {
+    font-size: 1.2rem;
+  }
+
+  .question h3 {
+    font-size: 1.6rem;
+  }
+
+  .options li {
+    padding: 15px;
+  }
+}

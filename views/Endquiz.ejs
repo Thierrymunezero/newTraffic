@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Results</title>
+  <link rel="stylesheet" href="/endquiz.css">
+  <script>
+    function showQuestion(index) {
+      const questions = document.querySelectorAll(".question");
+      questions.forEach((q, i) => {
+        q.style.display = i === index ? "block" : "none";
+      });
+      
+      const navButtons = document.querySelectorAll(".nav-button");
+      navButtons.forEach((btn, i) => {
+        btn.classList.toggle("active", i === index);
+      });
+    }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <header class="quiz-header">
+      <h1>Quiz Results</h1>
+      <div class="score-box">
+        <p>Your Score: <strong><%= score %> /20</strong></p>
+        <p class="status">
+          Status: 
+          <span class="<%= passed ? 'correct' : 'incorrect' %>">
+            <%= passed ? 'Passed' : 'Failed' %>
+          </span>
+        </p>
+        <a href="/" class="retry-button">Take the Quiz Again</a>
+      </div>
+    </header>
+
+    <!-- Question Navigation -->
+    <section class="question-navigation">
+      <h2>Review Questions</h2>
+      <div class="nav-buttons">
+        <% results.forEach((_, index) => { %>
+          <button 
+            class="nav-button <%= index === 0 ? 'active' : '' %>" 
+            onclick="showQuestion(<%= index %>)">
+            Question <%= index + 1 %>
+          </button>
+        <% }); %>
+      </div>
+    </section>
+
+    <!-- Questions Section -->
+    <section class="questions-review">
+      <% results.forEach((result, index) => { %>
+        <div class="question" style="<%= index === 0 ? '' : 'display: none;' %>">
+          <h3>Question <%= index + 1 %>: <%= result.question_text %></h3>
+          <% if (result.question_image) { %>
+            <img src="http://10.200.17.34:8000<%= result.question_image %>" alt="Question Image" class="question-image">
+          <% } %>
+
+          <ul class="options">
+            <% result.answers.forEach(option => { %>
+              <li class="<%= option.selected ? 'selected' : '' %>">
+                <% if (option.answer_text) { %>
+                  <span><%= option.answer_text %></span>
+                <% } %>
+                <% if (option.answer_image) { %>
+                  <img src="https://app-dxd6.onrender.com<%= option.answer_image %>" alt="Option Image" class="option-image">
+                <% } %>
+                <% if (option.is_correct) { %>
+                  <span class="correct">[Correct]</span>
+                <% } %>
+                <% if (option.selected) { %>
+                  <span class="<%= option.is_correct ? 'correct' : 'incorrect' %>">
+                    [Your Answer]
+                  </span>
+                <% } %>
+              </li>
+            <% }); %>
+          </ul>
+
+          <div class="answer-details">
+            <p><strong>Correct Answer:</strong> <%= result.correct_answer %></p>
+            <% if (result.correct_answer_image) { %>
+              <img src="https://app-dxd6.onrender.com<%= result.correct_answer_image %>" alt="Correct Answer Image" class="answer-image">
+            <% } %>
+
+            <p><strong>Your Answer:</strong> <%= result.selected_answer %></p>
+            <% if (result.selected_answer_image) { %>
+              <img src="https://app-dxd6.onrender.com<%= result.selected_answer_image %>" alt="Selected Answer Image" class="answer-image">
+            <% } %>
+
+            <p class="result-status">
+              <span class="<%= result.is_correct ? 'correct' : 'incorrect' %>">
+                <%= result.is_correct ? 'Correct!' : 'Incorrect' %>
+              </span>
+            </p>
+          </div>
+        </div>
+      <% }); %>
+    </section>
+  </div>
+</body>
+</html>

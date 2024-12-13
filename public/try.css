@@ -1,0 +1,172 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background-color: #eaeaea; /* Light grey background */
+  }
+  
+  .quiz-container {
+    max-width: 800px;
+    margin: auto;
+    background: white; /* White background for quiz section */
+    border-radius: 10px; /* Rounded corners */
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* Soft shadow */
+  }
+  
+  #timer {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: red;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  h2 {
+    color: #333; /* Dark text color */
+    text-align: center;
+    margin: 20px 0;
+  }
+  
+  .question-navigation {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .question-btn {
+    margin: 5px;
+    padding: 8px 15px;
+    border: 2px solid #007bff; /* Button border color */
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #f9f9f9; /* Light background */
+    color: #007bff; /* Button text color */
+    transition: background-color 0.3s, color 0.3s;
+  }
+  
+  .question-btn:hover {
+    background-color: #007bff; /* Highlight on hover */
+    color: white; /* Change text color on hover */
+  }
+  
+  .question {
+    margin-bottom: 20px;
+  }
+  
+  .options input[type="radio"] {
+    margin-right: 10px; /* Space between radio button and text */
+  }
+  
+  .options label:hover {
+    background-color: #f1f1f1; /* Light background on option hover */
+  }
+  
+  .navigation {
+    text-align: center;
+    margin-top: 20px;
+  }
+  
+  button {
+    padding: 10px 20px;
+    border: none;
+    background-color: #28a745; /* Green for submit button */
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+  }
+  
+  button:hover {
+    background-color: #218838; /* Darker green on hover */
+  }
+  
+  /* Adapted for previous and next buttons */
+  #prev-btn,
+  #next-btn {
+    background-color: #007bff; /* Blue for navigation buttons */
+  }
+  
+  #prev-btn:hover,
+  #next-btn:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+  }
+  
+  .btn {
+    background-color: #28a745; /* Green for main action */
+  }
+  
+  .btn:hover {
+    background-color: #218838; /* Darker green on hover */
+  }
+  
+  /*--/*/
+  
+  .options label {
+    display: flex; /* Use flex to align items */
+    align-items: center; /* Center-align items vertically */
+    padding: 15px; /* Increase padding for better clickability */
+    margin-bottom: 10px;
+    border: 2px solid #ccc; /* Slightly thicker border for visibility */
+    border-radius: 5px;
+    transition: background-color 0.3s, border-color 0.3s; /* Transition for background and border */
+  }
+  
+  .options img {
+    width: 50px; /* Fixed width for images */
+    height: 50px; /* Fixed height for images */
+    object-fit: cover; /* Fit the image to the box */
+    margin-right: 15px; /* Space between image and text */
+    border-radius: 5px; /* Rounded corners for images */
+  }
+  
+  .options label:hover {
+    background-color: #f1f1f1; /* Light background on hover */
+    border-color: #007bff; /* Change border color on hover */
+  }
+  
+  .options input[type="radio"] {
+    margin-right: 10px; /* Space between radio button and text */
+  }
+  h3 {
+    text-align: center;
+  }
+  
+  /* Style for the custom radio buttons */
+  
+  /* Style for the custom radio buttons */
+  .custom-radio {
+    display: none; /* Hide the default radio button */
+  }
+  
+  .custom-radio-label {
+    display: inline-block;
+    cursor: pointer;
+    width: 32px; /* Adjust to desired size */
+    height: 32px; /* Adjust to desired size */
+    border-radius: 50%; /* Makes the button circular */
+    background-color: #e0e0e0; /* Background color */
+    position: relative;
+    margin-right: 10px; /* Space between options */
+  }
+  
+  .custom-radio-label:after {
+    content: "";
+    display: none; /* Hidden by default */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 18px; /* Size of checkmark */
+    height: 18px; /* Size of checkmark */
+    border-radius: 50%; /* Circular checkmark */
+    background-color: #4caf50; /* Checkmark color */
+  }
+  
+  .custom-radio:checked + .custom-radio-label:after {
+    display: block; /* Show checkmark when selected */
+  }
+  
+  .options {
+    display: flex;
+    flex-direction: column; /* Stack options vertically */
+  }
+  

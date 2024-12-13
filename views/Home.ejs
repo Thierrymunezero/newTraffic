@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/home.css">
+  <title>Quiz App</title>
+</head>
+
+<body>
+  <header>
+    <h1>Quiz Application</h1>
+  </header>
+
+  <div class="container">
+    <h2 class="btna ha">Welcome to the Quiz</h2>
+
+    <!-- Logout Button -->
+    <a href="javascript:void(0);" id="logout-btn" class="logout-btn">Logout</a>
+
+    <!-- Start Quiz Section -->
+    <div id="quiz-link-container">
+      <!-- Server-side rendering fallback -->
+      <% if (userToken) { %>
+        <a href="/quiz" class="btna">Start Quiz</a>
+      <% } else { %>
+        <p>Please log in to start the quiz.</p>
+      <% } %>
+    </div>
+  </div>
+
+  <footer>
+    &copy; 2024 Quiz App. All rights reserved.
+  </footer>
+
+  <script>
+    // Check if the userToken is available
+    const userToken = <%- JSON.stringify(userToken || '') %>; // Securely interpolates token from server-side
+
+    const quizLinkContainer = document.getElementById('quiz-link-container');
+
+    // Dynamically render the "Start Quiz" button or prompt to log in
+    if (userToken.trim() !== "") {
+      quizLinkContainer.innerHTML = `
+        <a href="/quiz" class="btna">Start Quiz</a>
+      `;
+    } else {
+      quizLinkContainer.innerHTML = `
+        <p>Please log in to start the quiz.</p>
+      `;
+    }
+
+    // Logout functionality (clear localStorage and redirect)
+    document.getElementById('logout-btn').addEventListener('click', function() {
+      // Clear token from localStorage (if stored there)
+      localStorage.removeItem('auth_token');
+
+      // Optionally clear any other session data
+      // localStorage.clear();
+
+      // Redirect to an external page or login page after logout
+      window.location.href = 'https://www.google.com'; // Redirect to an external page, e.g., Google
+    });
+  </script>
+</body>
+
+</html>
