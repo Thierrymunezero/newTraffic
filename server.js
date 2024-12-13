@@ -31,7 +31,7 @@ app.use(cookieParser()); // Use cookie-parser middleware
 
 
 //const API_BASE_URL = "http://10.200.17.34:8000/api/";
-const API_BASE_URL = "https://app-dxd6.onrender.com/api/";
+const API_BASE_URL = process.env.API_URL;
 
 // Utility: Check if user is authenticated using cookies
 const checkAuth = (req, res, next) => {
@@ -288,10 +288,11 @@ app.get('/quiz', checkAuth, async (req, res) => {
       return res.status(500).json({ error: 'Error submitting quiz' });
     }
   });
-  
 
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
+
+
