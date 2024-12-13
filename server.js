@@ -68,7 +68,7 @@ app.post('/signup', async (req, res) => {
     console.log("Signup response:", data);
 
     if (response.ok) {
-      res.cookie('userToken', data.access, { httpOnly: true }); // Set token in cookies
+      res.cookie('userToken', data.access, { httpOnly: true, sameSite: 'None',  secure: true }); // Set token in cookies
       console.log("Signup successful, user redirected to home.");
       res.redirect('/');
     } else {
@@ -96,7 +96,8 @@ app.post('/login', async (req, res) => {
     console.log("Login response:", data);
 
     if (response.ok) {
-      res.cookie('userToken', data.access, { httpOnly: true }); // Set token in cookies
+     // res.cookie('userToken', data.access, { httpOnly: true }); // Set token in cookies
+       res.cookie('userToken', data.access, { httpOnly: true, sameSite: 'None',  secure: true }); // Set token in cookies
       console.log("Login successful, user redirected to home.");
       res.redirect('/');
     } else {
