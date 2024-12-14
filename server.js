@@ -10,6 +10,8 @@ import axios from 'axios';
 import cookieParser from 'cookie-parser'; // Import cookie-parser
 import cors from 'cors';
 
+const app = express();
+
 app.use(cors({
   origin: ['https://newtraffic-rules.onrender.com'], // Update this to your actual Render URL
   credentials: true // Allow cookies to be sent across different domains
@@ -21,7 +23,7 @@ axios.defaults.withCredentials = true;
 
 dotenv.config();
 
-const app = express();
+
 
 // Define __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
