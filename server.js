@@ -58,75 +58,39 @@ app.get('/auth', (req, res) => {
   res.render('Auth');
 });
 
-app.post('/signup', async (req, res) => {
-  const { username, password } = req.body;
-  console.log("Received signup request for:", username);
+app.post('/signup', async (req, res) => {  
+    const { username, password } = req.body;  
+    console.log("Received signup request for:", username);  
 
-  try {
-    const response = await fetch(`${API_BASE_URL}user/register/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-      credentials: 'include'
-    });
+    try {  
+        const response = await fetch(`${API_BASE_URL}user/register/`, {  
+            method: 'POST',  
+            headers: { 'Content-Type': 'application/json' },  
+            body: JSON.stringify({ username, password }),  
+            credentials: 'include'  // Ensure correct placement with a comma at the end  
+        });  
 
-    console.log("Response Status:", response.status);
-    console.log("Response Content-Type:", response.headers.get('Content-Type'));
+        const data = await response.json(); // JSON parsing  
 
-    const data = await response.json();
-    console.log("Signup response:", data);
-
-    if (response.ok) {
-      res.cookie('userToken', data.access, { 
-  httpOnly: true, 
-  secure: process.env.NODE_ENV === 'production', 
-  sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax' 
-});
-      console.log("Signup successful, user redirected to home.");
-
- res.redirect('/');
-    } else {
-      console.log("Signup failed with message:", data.message);
-      res.status(400).send(data.message || "Signup failed");
-    }
-
-  } catch (err) {
-    console.error("Error during signup:", err);
-    res.status(500).send("Server error during signup");
-  }
-});
-
-app.post('/login', async (req, res) => {
-  const { username, password } = req.body;
-  console.log("Received login request for:", username);
-
-  try {
-    const response = await fetch(`${API_BASE_URL}token/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-      credentials: 'include'
-    });
-    const data = await response.json();
-    console.log("Login response:", data);
-
-    if (response.ok) {
-      res.cookie('userToken', data.access, { 
-  httpOnly: true, 
-  secure: process.env.NODE_ENV === 'production', 
-  sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax' 
-});
-      
-      console.log("Login successful, user redirected to home.");
-      res.redirect('/');
-    } else {
-      console.log("Login failed with message:", data.message);
-      res.status(400).send(data.message || "Login failed");
-    }
-  } catch (err) {
-    console.error("Error during login:", err);
-    res.status(500).send("Server error during login");
-  }
+        if (response.ok) {  
+            // Handle successful signup response  
+            res.cookie('userToken', data.access, {   
+                httpOnly: true,  
+                secure: process.env.NODE_ENV === 'production',  
+                sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax'  
+            });  
+            console.log("Signup successful, user redirected to home.");  
+            res.redirect('/');  
+        } else {  
+            // Handle signup error response  
+            console.log("Signup failed with message:", data.message);  
+            res.status(400).send(data.message || "Signup failed");  
+        }  
+    } catch (err) {  
+        // Catch any errors during the signup process  
+        console.error("Error during signup:", err);  
+        res.status(500).send("Server error during signup");  
+    }  
 });
 
 app.post('/logout', async (req, res) => {
@@ -172,36 +136,49 @@ app.get('/logout', (req, res) => {
 
 
 // Render the home page if authenticated
-app.get('/', checkAuth, (req, res) => {
-  console.log("Rendering home page");
-  res.render('Home', { userToken: req.cookies.userToken }); // Use token from cookies
-});
-app.get('/quiz', checkAuth, async (req, res) => {
-  console.log("Fetching quiz questions...");
-  res.clearCookie('quizQuestions');
-  try {
-    const response = await fetch(`${API_BASE_URL}quizzes/`, {
-      headers: { 'Authorization': `Bearer ${req.cookies.userToken}` }
-      credentials: 'include'
-    });
+// Home Route  
+app.get('/', checkAuth, (req, res) => {  
+  console.log("Rendering home page");  
+  // Render the home page and pass the userToken from cookies  
+  res.render('Home', { userToken: req.cookies.userToken });  
+});  
 
-    if (response.status === 200) {
-      const questions = await response.json();
-      console.log("Quiz questions fetched:", questions);
-      res.cookie('quizQuestions', JSON.stringify(questions), { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 }); // Store for 1 day
-      res.render('Quiz', {
-        questions: questions,
-        userToken: req.cookies.userToken,
-        userAnswers: []  // User's answers will be passed from cookies later
-      });
-    } else {
-      console.log("No questions available or Not found");
-      res.status(404).send("No questions available or Not found");
-    }
-  } catch (err) {
-    console.error("Error fetching quiz questions:", err);
-    res.status(500).send("Error fetching quiz questions");
-  }
+// Quiz Route  
+app.get('/quiz', checkAuth, async (req, res) => {  
+  console.log("Fetching quiz questions...");  
+  res.clearCookie('quizQuestions');  
+
+  try {  
+    const response = await fetch(`${API_BASE_URL}quizzes/`, {  
+      method: 'GET', // It's good practice to specify the method explicitly  
+      headers: {  
+        'Authorization': `Bearer ${req.cookies.userToken}`, // Include the user token in the headers  
+        'Content-Type': 'application/json', // Optional: Set content type  
+      },  
+      credentials: 'include' // Proper placement of credentials within fetch options  
+    });  
+
+    if (response.status === 200) {  
+      const questions = await response.json();  
+      console.log("Quiz questions fetched:", questions);  
+      // Store questions in a cookie for 1 day  
+      res.cookie('quizQuestions', JSON.stringify(questions), {  
+        httpOnly: true,  
+        maxAge: 24 * 60 * 60 * 1000 // 1 day in milliseconds  
+      });  
+      res.render('Quiz', {  
+        questions: questions,  
+        userToken: req.cookies.userToken,  
+        userAnswers: [] // User's answers will be passed from cookies later  
+      });  
+    } else {  
+      console.log("No questions available or Not found");  
+      res.status(404).send("No questions available or Not found");  
+    }  
+  } catch (err) {  
+    console.error("Error fetching quiz questions:", err);  
+    res.status(500).send("Error fetching quiz questions");  
+  }  
 });
 
 
@@ -247,19 +224,19 @@ app.get('/quiz', checkAuth, async (req, res) => {
       return res.status(401).json({ error: 'User not authenticated' });
     }
   
-    try {
-      // Submit answers via API
-      const response = await axios.post(
-        `${API_BASE_URL}quizzes/`,
-        { answers },
-        {
-          headers: {
-            Authorization: `Bearer ${userToken}`,
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include'
-        }
-      );
+try {  
+  // Submit answers via API  
+  const response = await axios.post(  
+    `${API_BASE_URL}quizzes/`,  
+    { answers },  
+    {  
+      headers: {  
+        Authorization: `Bearer ${userToken}`,  
+        'Content-Type': 'application/json',  
+      },  
+      withCredentials: true // Use withCredentials instead of credentials  
+    }  
+  ); 
   
       const { results } = response.data;
       console.log(`API results: ${JSON.stringify(results)}`);
