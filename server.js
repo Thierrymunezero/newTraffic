@@ -28,9 +28,6 @@ app.use(cookieParser()); // Use cookie-parser middleware
 
 
 
-
-
-//const API_BASE_URL = "http://10.200.17.34:8000/api/";
 const API_BASE_URL = process.env.API_URL;
 
 // Utility: Check if user is authenticated using cookies
