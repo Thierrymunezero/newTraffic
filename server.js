@@ -8,6 +8,16 @@ import fetch from 'node-fetch';
 import bodyParser from 'body-parser';
 import axios from 'axios';
 import cookieParser from 'cookie-parser'; // Import cookie-parser
+import cors from 'cors';
+
+app.use(cors({
+  origin: ['https://newtraffic-rules.onrender.com'], // Update this to your actual Render URL
+  credentials: true // Allow cookies to be sent across different domains
+}));
+
+
+axios.defaults.withCredentials = true;
+
 
 dotenv.config();
 
@@ -56,7 +66,8 @@ app.post('/signup', async (req, res) => {
     const response = await fetch(`${API_BASE_URL}user/register/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ username, password }),
+      credentials: 'include'
     });
 
     console.log("Response Status:", response.status);
@@ -66,9 +77,14 @@ app.post('/signup', async (req, res) => {
     console.log("Signup response:", data);
 
     if (response.ok) {
-      res.cookie('userToken', data.access, { httpOnly: true }); // Set token in cookies
+      res.cookie('userToken', data.access, { 
+  httpOnly: true, 
+  secure: process.env.NODE_ENV === 'production', 
+  sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax' 
+});
       console.log("Signup successful, user redirected to home.");
-      res.redirect('/');
+
+ res.redirect('/');
     } else {
       console.log("Signup failed with message:", data.message);
       res.status(400).send(data.message || "Signup failed");
@@ -89,12 +105,18 @@ app.post('/login', async (req, res) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
+      credentials: 'include'
     });
     const data = await response.json();
     console.log("Login response:", data);
 
     if (response.ok) {
-      res.cookie('userToken', data.access, { httpOnly: true }); // Set token in cookies
+      res.cookie('userToken', data.access, { 
+  httpOnly: true, 
+  secure: process.env.NODE_ENV === 'production', 
+  sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax' 
+});
+      
       console.log("Login successful, user redirected to home.");
       res.redirect('/');
     } else {
@@ -160,6 +182,7 @@ app.get('/quiz', checkAuth, async (req, res) => {
   try {
     const response = await fetch(`${API_BASE_URL}quizzes/`, {
       headers: { 'Authorization': `Bearer ${req.cookies.userToken}` }
+      credentials: 'include'
     });
 
     if (response.status === 200) {
@@ -234,6 +257,7 @@ app.get('/quiz', checkAuth, async (req, res) => {
             Authorization: `Bearer ${userToken}`,
             'Content-Type': 'application/json',
           },
+          credentials: 'include'
         }
       );
   
