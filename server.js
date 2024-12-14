@@ -5,7 +5,9 @@ import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 import bodyParser from 'body-parser';
 import axios from 'axios';
-import cookieParser from 'cookie-parser'; // Import cookie-parser
+import cookieParser from 'cookie-parser'; 
+import cors from 'cors';
+import helmet from 'helmet';
 
 dotenv.config();
 
@@ -15,18 +17,22 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Middleware
+// Security headers and middleware
+app.use(helmet());
+
+
+app.use(cors());
+
+
 app.use(express.urlencoded({ extended: true }));
-app.use(express.json()); // Middleware for parsing JSON
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cookieParser()); // Use cookie-parser middleware
-
-
-
+app.use(cookieParser());
 
 const API_BASE_URL = process.env.API_URL;
 
@@ -47,6 +53,8 @@ app.get('/auth', (req, res) => {
   res.render('Auth');
 });
 
+
+
 app.post('/signup', async (req, res) => {
   const { username, password } = req.body;
   console.log("Received signup request for:", username);
@@ -61,16 +69,26 @@ app.post('/signup', async (req, res) => {
     console.log("Response Status:", response.status);
     console.log("Response Content-Type:", response.headers.get('Content-Type'));
 
-    const data = await response.json();
-    console.log("Signup response:", data);
+    let data;
+    try {
+      data = await response.json();
+    } catch (err) {
+      console.error("Failed to parse response as JSON:", err);
+      return res.status(500).send("Server error: invalid response from API");
+    }
 
     if (response.ok) {
-      res.cookie('userToken', data.access, { httpOnly: true, sameSite: 'None',  secure: true }); // Set token in cookies
+      const isProduction = process.env.NODE_ENV === 'production';
+      res.cookie('userToken', data.access, { 
+        httpOnly: true, 
+        sameSite: 'None',  
+        secure: isProduction 
+      });
       console.log("Signup successful, user redirected to home.");
       res.redirect('/');
     } else {
       console.log("Signup failed with message:", data.message);
-      res.status(400).send(data.message || "Signup failed");
+      res.status(response.status).send(data.message || "Signup failed");
     }
 
   } catch (err) {
@@ -79,6 +97,9 @@ app.post('/signup', async (req, res) => {
   }
 });
 
+
+
+// LOGIN ROUTE
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   console.log("Received login request for:", username);
@@ -89,17 +110,27 @@ app.post('/login', async (req, res) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     });
-    const data = await response.json();
-    console.log("Login response:", data);
+
+    let data;
+    try {
+      data = await response.json();
+    } catch (err) {
+      console.error("Failed to parse response as JSON:", err);
+      return res.status(500).send("Server error: invalid response from API");
+    }
 
     if (response.ok) {
-     // res.cookie('userToken', data.access, { httpOnly: true }); // Set token in cookies
-       res.cookie('userToken', data.access, { httpOnly: true, sameSite: 'None',  secure: true }); // Set token in cookies
+      const isProduction = process.env.NODE_ENV === 'production';
+      res.cookie('userToken', data.access, { 
+        httpOnly: true, 
+        sameSite: 'None', 
+        secure: isProduction 
+      });
       console.log("Login successful, user redirected to home.");
       res.redirect('/');
     } else {
       console.log("Login failed with message:", data.message);
-      res.status(400).send(data.message || "Login failed");
+      res.status(response.status).send(data.message || "Login failed");
     }
   } catch (err) {
     console.error("Error during login:", err);
@@ -107,30 +138,36 @@ app.post('/login', async (req, res) => {
   }
 });
 
+// LOGOUT ROUTE
 app.post('/logout', async (req, res) => {
   console.log("Received logout request");
+
   try {
     const response = await fetch(`${API_BASE_URL}users/logout/`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${req.cookies.userToken}`, // Get token from cookies
+        'Authorization': `Bearer ${req.cookies.userToken}`, 
         'Content-Type': 'application/json'
       }
     });
-    if (response.status === 200) {
+
+    if (response.ok) {
       console.log("Logout successful");
-      res.clearCookie('userToken'); // Clear the token cookie
+      res.clearCookie('userToken', { 
+        httpOnly: true, 
+        sameSite: 'None', 
+        secure: process.env.NODE_ENV === 'production' 
+      });
       res.redirect('/auth');
     } else {
-      console.log("Logout failed");
-      res.status(400).send("Logout failed");
+      console.log("Logout failed with status", response.status);
+      res.status(response.status).send("Logout failed");
     }
   } catch (err) {
     console.error("Error during logout:", err);
     res.status(500).send("Server error during logout");
   }
 });
-
 
 
 // Logout route
@@ -192,100 +229,89 @@ app.get('/quiz', checkAuth, async (req, res) => {
   // [{"question_id":10,"selected_answer_id":49,"correct_answer_id":49,"is_correct":true},{"question_id":9,"selected_answer_id":46,"correct_answer_id":46,"is_correct":true}]
 
 
-
-  app.post('/quiz', async (req, res) => {
-    console.log('--- Handling /quiz POST request ---');
+app.post('/quiz', async (req, res) => {
+  console.log('--- Handling /quiz POST request ---');
   
-    const { answers: rawAnswers } = req.body;
-    let answers;
+  const { answers: rawAnswers } = req.body;
+  let answers;
   
-    // Get the questions from cookies
-    const question_first = JSON.parse(req.cookies.quizQuestions || '[]');
-    const questions = Array.isArray(question_first) ? question_first : [];
-    console.log(`${JSON.stringify(questions)}`);
-  
-    // Parse the answers string if necessary
-    try {
-      answers = typeof rawAnswers === 'string' ? JSON.parse(rawAnswers) : rawAnswers;
-      console.log(`Parsed answers: ${JSON.stringify(answers)}`);
-    } catch (err) {
-      console.error('Error parsing answers:', err.message);
-      return res.status(400).json({ error: 'Invalid answers format' });
-    }
-  
-    // Validate answers
-    if (!answers || !Array.isArray(answers) || answers.length === 0) {
+  // Parse and validate the answers
+  try {
+    answers = typeof rawAnswers === 'string' ? JSON.parse(rawAnswers) : rawAnswers;
+    if (!Array.isArray(answers) || answers.length === 0) {
       return res.status(400).json({ error: 'Answers cannot be empty or invalid' });
     }
+  } catch (err) {
+    console.error('Error parsing answers:', err.message);
+    return res.status(400).json({ error: 'Invalid answers format' });
+  }
   
-    // Validate userToken from cookies
-    const userToken = req.cookies.userToken;
-    if (!userToken) {
-      return res.status(401).json({ error: 'User not authenticated' });
-    }
-  
+  // Get quiz questions from cookies
+  const questions = (() => {
     try {
-      // Submit answers via API
-      const response = await axios.post(
-        `${API_BASE_URL}quizzes/`,
-        { answers },
-        {
-          headers: {
-            Authorization: `Bearer ${userToken}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-  
-      const { results } = response.data;
-      console.log(`API results: ${JSON.stringify(results)}`);
-  
-      if (response.status === 201 && results) {
-        // Enhance results with question and answer details
-        const enhancedResults = results.map((result) => {
-          const question = questions.find((q) => q.id === result.question_id);
-  
-          if (!question) return null;
-  
-          const selectedOption = question.answers.find((opt) => opt.id === result.selected_answer_id);
-          const correctOption = question.answers.find((opt) => opt.id === result.correct_answer_id);
-  
-          return {
-            question_text: question.question || `Question ID ${result.question_id}`,
-            question_image: question.question_image || null,
-            correct_answer: correctOption ? correctOption.answer_text : 'N/A',
-            correct_answer_image: correctOption ? correctOption.answer_image : null,
-            selected_answer: selectedOption ? selectedOption.answer_text : 'N/A',
-            selected_answer_image: selectedOption ? selectedOption.answer_image : null,
-            is_correct: result.is_correct,
-            answers: question.answers.map((option) => ({
-              answer_text: option.answer_text,
-              answer_image: option.answer_image,
-              is_correct: option.is_correct,
-              selected: option.id === result.selected_answer_id,
-            })),
-          };
-        }).filter((result) => result !== null);
-  
-        // Calculate score
-        const score = enhancedResults.filter((r) => r.is_correct).length;
-        const passingScore = 12;
-        const passed = score >= passingScore;
-  
-        // Render the Endquiz page
-        return res.render('Endquiz', {
-          score,
-          results: enhancedResults,
-          passed,
-        });
-      } else {
-        res.status(400).send('Error submitting quiz');
-      }
-    } catch (error) {
-      console.error('Error during API request:', error.message);
-      return res.status(500).json({ error: 'Error submitting quiz' });
+      const parsed = JSON.parse(req.cookies.quizQuestions || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (err) {
+      console.error('Error parsing quizQuestions cookie:', err.message);
+      return [];
     }
-  });
+  })();
+  
+  const userToken = req.cookies.userToken;
+  if (!userToken) return res.status(401).json({ error: 'User not authenticated' });
+
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}quizzes/`,
+      { answers },
+      {
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const { results } = response.data;
+    if (response.status === 201 && results) {
+      const enhancedResults = results.map((result) => {
+        const question = questions.find((q) => q.id === result.question_id);
+        if (!question) return null;
+
+        const selectedOption = question.answers.find((opt) => opt.id === result.selected_answer_id) || {};
+        const correctOption = question.answers.find((opt) => opt.id === result.correct_answer_id) || {};
+
+        return {
+          question_text: question.question || `Question ID ${result.question_id}`,
+          question_image: question.question_image || null,
+          correct_answer: correctOption.answer_text || 'N/A',
+          correct_answer_image: correctOption.answer_image || null,
+          selected_answer: selectedOption.answer_text || 'N/A',
+          selected_answer_image: selectedOption.answer_image || null,
+          is_correct: result.is_correct,
+          answers: question.answers.map((option) => ({
+            answer_text: option.answer_text,
+            answer_image: option.answer_image,
+            is_correct: option.is_correct,
+            selected: option.id === result.selected_answer_id,
+          })),
+        };
+      }).filter(Boolean);
+
+      const score = enhancedResults.filter((r) => r.is_correct).length;
+      const passingScore = 12;
+      const passed = score >= passingScore;
+
+      return res.render('Endquiz', { score, results: enhancedResults, passed });
+    } else {
+      res.status(400).send('Error submitting quiz');
+    }
+  } catch (error) {
+    console.error('Error during API request:', error.message);
+    return res.status(500).json({ error: 'Error submitting quiz' });
+  }
+});
+
 
 
 const PORT = process.env.PORT || 3001;
