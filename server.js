@@ -5,26 +5,25 @@ import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 import bodyParser from 'body-parser';
 import axios from 'axios';
-import cookieParser from 'cookie-parser'; 
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 
 const app = express();
 
-// Load environment variables from .env file
 dotenv.config();
 
-// Setup the current file's path for Express views and static files
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// CORS configuration
+// CORS configuration for production (ensure your frontend domain is allowed)
 app.use(cors({
-  origin: ['https://newtraffic-rules.onrender.com'], // Ensure this is the correct frontend URL
-  credentials: true,
+  origin: 'https://newtraffic-rules.onrender.com', // Your frontend URL
+  credentials: true, // Allow cookies to be sent with requests
 }));
 
-// Axios default config for sending credentials with requests
+// Set up axios to handle cookies
 axios.defaults.withCredentials = true;
+
+// For path resolution in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Middleware setup
 app.use(express.urlencoded({ extended: true }));
@@ -36,57 +35,61 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// API base URL from environment variable
+// Set API base URL
 const API_BASE_URL = process.env.API_URL;
 
-// Middleware to check authentication from cookies
+// Middleware to check authentication
 const checkAuth = (req, res, next) => {
   console.log("Checking authentication...");
+
   if (!req.cookies.userToken) {
     console.log("User is not authenticated. Redirecting to /auth");
-    return res.redirect('/auth');
+    return res.redirect('/auth'); // Redirect to login if no userToken
   }
+
   console.log("User is authenticated");
   next();
 };
 
-// Route for rendering the Auth page
+// Auth route (login/signup)
 app.get('/auth', (req, res) => {
   console.log("Rendering Auth page");
   res.render('Auth');
 });
 
-// Sign-up route
-app.post('/signup', async (req, res) => {  
-  const { username, password } = req.body;  
-  console.log("Received signup request for:", username);  
+// Signup route
+app.post('/signup', async (req, res) => {
+  const { username, password } = req.body;
+  console.log("Received signup request for:", username);
 
-  try {  
-    const response = await fetch(`${API_BASE_URL}user/register/`, {  
-      method: 'POST',  
-      headers: { 'Content-Type': 'application/json' },  
-      body: JSON.stringify({ username, password }),  
-      credentials: 'include'  
-    });  
+  try {
+    const response = await fetch(`${API_BASE_URL}user/register/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+      credentials: 'include',
+    });
 
-    const data = await response.json();  
+    const data = await response.json();
 
-    if (response.ok) {  
-      res.cookie('userToken', data.access, {   
-        httpOnly: true,  
-        secure: process.env.NODE_ENV === 'production',  
-        sameSite: 'None' // Important for cross-site cookies in production
-      });  
-      console.log("Signup successful, user redirected to home.");  
-      res.redirect('/');  
-    } else {  
-      console.log("Signup failed with message:", data.message);  
-      res.status(400).send(data.message || "Signup failed");  
-    }  
-  } catch (err) {  
-    console.error("Error during signup:", err);  
-    res.status(500).send("Server error during signup");  
-  }  
+    if (response.ok) {
+      // Set the authentication cookie securely in production
+      res.cookie('userToken', data.access, {
+        httpOnly: true,
+        secure: true, // Ensure cookies are sent over HTTPS
+        sameSite: 'None', // Required for cross-site cookies in production
+        maxAge: 24 * 60 * 60 * 1000, // 1-day expiration
+      });
+      console.log("Signup successful, user redirected to home.");
+      res.redirect('/');
+    } else {
+      console.log("Signup failed with message:", data.message);
+      res.status(400).send(data.message || "Signup failed");
+    }
+  } catch (err) {
+    console.error("Error during signup:", err);
+    res.status(500).send("Server error during signup");
+  }
 });
 
 // Login route
@@ -99,13 +102,19 @@ app.post('/login', async (req, res) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
-      credentials: 'include'  
+      credentials: 'include',
     });
     const data = await response.json();
+
     console.log("Login response:", data);
 
     if (response.ok) {
-      res.cookie('userToken', data.access, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'None' });
+      res.cookie('userToken', data.access, {
+        httpOnly: true,
+        secure: true, // Ensure cookies are sent over HTTPS
+        sameSite: 'None', // Required for cross-site cookies in production
+        maxAge: 24 * 60 * 60 * 1000, // 1-day expiration
+      });
       console.log("Login successful, user redirected to home.");
       res.redirect('/');
     } else {
@@ -118,51 +127,47 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// Home page route
+// Home route (protected)
 app.get('/', checkAuth, (req, res) => {
   console.log("Rendering home page");
   res.render('Home', { userToken: req.cookies.userToken });
 });
 
-// Quiz page route (GET request)
-app.get('/quiz', checkAuth, async (req, res) => {  
-  console.log("Fetching quiz questions...");  
-  res.clearCookie('quizQuestions');  
+// Quiz route (protected)
+app.get('/quiz', checkAuth, async (req, res) => {
+  console.log("Fetching quiz questions...");
+  res.clearCookie('quizQuestions');
 
-  try {  
-    const response = await fetch(`${API_BASE_URL}quizzes/`, {  
+  try {
+    const response = await fetch(`${API_BASE_URL}quizzes/`, {
       method: 'GET',
-      headers: {  
-        'Authorization': `Bearer ${req.cookies.userToken}`, 
-        'Content-Type': 'application/json', 
-      },  
-      credentials: 'include' // Ensures credentials are included
-    });  
+      headers: {
+        'Authorization': `Bearer ${req.cookies.userToken}`,
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', // Ensure cookies are sent with the request
+    });
 
-    if (response.status === 200) {  
-      const questions = await response.json();  
-      console.log("Quiz questions fetched:", questions);  
-    
-      res.cookie('quizQuestions', JSON.stringify(questions), {  
-        httpOnly: true,  
-        maxAge: 24 * 60 * 60 * 1000 // Cookie expiration of 24 hours
-      });  
-      res.render('Quiz', {  
-        questions: questions,  
-        userToken: req.cookies.userToken,  
-        userAnswers: []  
-      });  
-    } else {  
-      console.log("No questions available or Not found");  
-      res.status(404).send("No questions available or Not found");  
-    }  
-  } catch (err) {  
-    console.error("Error fetching quiz questions:", err);  
-    res.status(500).send("Error fetching quiz questions");  
-  }  
+    if (response.status === 200) {
+      const questions = await response.json();
+      console.log("Quiz questions fetched:", questions);
+
+      res.cookie('quizQuestions', JSON.stringify(questions), {
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000, // 1 day expiration
+      });
+      res.render('Quiz', { questions, userToken: req.cookies.userToken, userAnswers: [] });
+    } else {
+      console.log("No questions available or Not found");
+      res.status(404).send("No questions available or Not found");
+    }
+  } catch (err) {
+    console.error("Error fetching quiz questions:", err);
+    res.status(500).send("Error fetching quiz questions");
+  }
 });
 
-// Quiz results submission route (POST request)
+// Submit quiz results route
 app.post('/quiz', async (req, res) => {
   console.log('--- Handling /quiz POST request ---');
 
@@ -191,50 +196,52 @@ app.post('/quiz', async (req, res) => {
   }
 
   try {
-    const response = await axios.post(  
-      `${API_BASE_URL}quizzes/`,  
-      { answers },  
-      {  
-        headers: {  
-          Authorization: `Bearer ${userToken}`,  
-          'Content-Type': 'application/json',  
-        },  
-        withCredentials: true 
-      }  
-    ); 
+    const response = await axios.post(
+      `${API_BASE_URL}quizzes/`,
+      { answers },
+      {
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true, // Include credentials for cross-origin requests
+      }
+    );
+
     const { results } = response.data;
     console.log(`API results: ${JSON.stringify(results)}`);
 
     if (response.status === 201 && results) {
-      const enhancedResults = results.map((result) => {
-        const question = questions.find((q) => q.id === result.question_id);
+      const enhancedResults = results
+        .map((result) => {
+          const question = questions.find((q) => q.id === result.question_id);
 
-        if (!question) return null;
+          if (!question) return null;
 
-        const selectedOption = question.answers.find((opt) => opt.id === result.selected_answer_id);
-        const correctOption = question.answers.find((opt) => opt.id === result.correct_answer_id);
+          const selectedOption = question.answers.find((opt) => opt.id === result.selected_answer_id);
+          const correctOption = question.answers.find((opt) => opt.id === result.correct_answer_id);
 
-        return {
-          question_text: question.question || `Question ID ${result.question_id}`,
-          question_image: question.question_image || null,
-          correct_answer: correctOption ? correctOption.answer_text : 'N/A',
-          correct_answer_image: correctOption ? correctOption.answer_image : null,
-          selected_answer: selectedOption ? selectedOption.answer_text : 'N/A',
-          selected_answer_image: selectedOption ? selectedOption.answer_image : null,
-          is_correct: result.is_correct,
-          answers: question.answers.map((option) => ({
-            answer_text: option.answer_text,
-            answer_image: option.answer_image,
-            is_correct: option.is_correct,
-            selected: option.id === result.selected_answer_id,
-          })),
-        };
-      }).filter((result) => result !== null);
+          return {
+            question_text: question.question || `Question ID ${result.question_id}`,
+            question_image: question.question_image || null,
+            correct_answer: correctOption ? correctOption.answer_text : 'N/A',
+            correct_answer_image: correctOption ? correctOption.answer_image : null,
+            selected_answer: selectedOption ? selectedOption.answer_text : 'N/A',
+            selected_answer_image: selectedOption ? selectedOption.answer_image : null,
+            is_correct: result.is_correct,
+            answers: question.answers.map((option) => ({
+              answer_text: option.answer_text,
+              answer_image: option.answer_image,
+              is_correct: option.is_correct,
+              selected: option.id === result.selected_answer_id,
+            })),
+          };
+        })
+        .filter((result) => result !== null);
 
       const score = enhancedResults.filter((r) => r.is_correct).length;
       const passingScore = 12;
       const passed = score >= passingScore;
-
       return res.render('Endquiz', {
         score,
         results: enhancedResults,
@@ -249,7 +256,7 @@ app.post('/quiz', async (req, res) => {
   }
 });
 
-// Server startup
+// Start server
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
