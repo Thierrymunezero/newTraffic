@@ -95,6 +95,35 @@ app.post('/signup', async (req, res) => {
     }  
 });
 
+
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+  console.log("Received login request for:", username);
+
+  try {
+    const response = await fetch(`${API_BASE_URL}token/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+       credentials: 'include'  // Ensure correct placement with a comma at the end  
+    });
+    const data = await response.json();
+    console.log("Login response:", data);
+
+    if (response.ok) {
+      res.cookie('userToken', data.access, { httpOnly: true }); // Set token in cookies
+      console.log("Login successful, user redirected to home.");
+      res.redirect('/');
+    } else {
+      console.log("Login failed with message:", data.message);
+      res.status(400).send(data.message || "Login failed");
+    }
+  } catch (err) {
+    console.error("Error during login:", err);
+    res.status(500).send("Server error during login");
+  }
+});
+
 app.post('/logout', async (req, res) => {
   console.log("Received logout request");
   try {
