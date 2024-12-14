@@ -1,5 +1,3 @@
-
-
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,43 +5,41 @@ import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 import bodyParser from 'body-parser';
 import axios from 'axios';
-import cookieParser from 'cookie-parser'; // Import cookie-parser
+import cookieParser from 'cookie-parser'; 
 import cors from 'cors';
 
 const app = express();
 
-app.use(cors({
-  origin: ['https://newtraffic-rules.onrender.com'], // Update this to your actual Render URL
-  credentials: true // Allow cookies to be sent across different domains
-}));
-
-
-axios.defaults.withCredentials = true;
-
-
+// Load environment variables from .env file
 dotenv.config();
 
-
-
-// Define __dirname for ES Modules
+// Setup the current file's path for Express views and static files
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Middleware
+// CORS configuration
+app.use(cors({
+  origin: ['https://newtraffic-rules.onrender.com'], // Ensure this is the correct frontend URL
+  credentials: true,
+}));
+
+// Axios default config for sending credentials with requests
+axios.defaults.withCredentials = true;
+
+// Middleware setup
 app.use(express.urlencoded({ extended: true }));
-app.use(express.json()); // Middleware for parsing JSON
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cookieParser()); // Use cookie-parser middleware
+app.use(cookieParser());
 
-
-
-
+// API base URL from environment variable
 const API_BASE_URL = process.env.API_URL;
-// Utility: Check if user is authenticated using cookies
+
+// Middleware to check authentication from cookies
 const checkAuth = (req, res, next) => {
   console.log("Checking authentication...");
   if (!req.cookies.userToken) {
@@ -54,48 +50,46 @@ const checkAuth = (req, res, next) => {
   next();
 };
 
-// Routes
+// Route for rendering the Auth page
 app.get('/auth', (req, res) => {
   console.log("Rendering Auth page");
   res.render('Auth');
 });
 
+// Sign-up route
 app.post('/signup', async (req, res) => {  
-    const { username, password } = req.body;  
-    console.log("Received signup request for:", username);  
+  const { username, password } = req.body;  
+  console.log("Received signup request for:", username);  
 
-    try {  
-        const response = await fetch(`${API_BASE_URL}user/register/`, {  
-            method: 'POST',  
-            headers: { 'Content-Type': 'application/json' },  
-            body: JSON.stringify({ username, password }),  
-            credentials: 'include'  // Ensure correct placement with a comma at the end  
-        });  
+  try {  
+    const response = await fetch(`${API_BASE_URL}user/register/`, {  
+      method: 'POST',  
+      headers: { 'Content-Type': 'application/json' },  
+      body: JSON.stringify({ username, password }),  
+      credentials: 'include'  
+    });  
 
-        const data = await response.json(); // JSON parsing  
+    const data = await response.json();  
 
-        if (response.ok) {  
-            // Handle successful signup response  
-            res.cookie('userToken', data.access, {   
-                httpOnly: true,  
-                secure: process.env.NODE_ENV === 'production',  
-                sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax'  
-            });  
-            console.log("Signup successful, user redirected to home.");  
-            res.redirect('/');  
-        } else {  
-            // Handle signup error response  
-            console.log("Signup failed with message:", data.message);  
-            res.status(400).send(data.message || "Signup failed");  
-        }  
-    } catch (err) {  
-        // Catch any errors during the signup process  
-        console.error("Error during signup:", err);  
-        res.status(500).send("Server error during signup");  
+    if (response.ok) {  
+      res.cookie('userToken', data.access, {   
+        httpOnly: true,  
+        secure: process.env.NODE_ENV === 'production',  
+        sameSite: 'None' // Important for cross-site cookies in production
+      });  
+      console.log("Signup successful, user redirected to home.");  
+      res.redirect('/');  
+    } else {  
+      console.log("Signup failed with message:", data.message);  
+      res.status(400).send(data.message || "Signup failed");  
     }  
+  } catch (err) {  
+    console.error("Error during signup:", err);  
+    res.status(500).send("Server error during signup");  
+  }  
 });
 
-
+// Login route
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   console.log("Received login request for:", username);
@@ -105,13 +99,13 @@ app.post('/login', async (req, res) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
-       credentials: 'include'  // Ensure correct placement with a comma at the end  
+      credentials: 'include'  
     });
     const data = await response.json();
     console.log("Login response:", data);
 
     if (response.ok) {
-      res.cookie('userToken', data.access, { httpOnly: true }); // Set token in cookies
+      res.cookie('userToken', data.access, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'None' });
       console.log("Login successful, user redirected to home.");
       res.redirect('/');
     } else {
@@ -124,83 +118,39 @@ app.post('/login', async (req, res) => {
   }
 });
 
-app.post('/logout', async (req, res) => {
-  console.log("Received logout request");
-  try {
-    const response = await fetch(`${API_BASE_URL}users/logout/`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${req.cookies.userToken}`, // Get token from cookies
-        'Content-Type': 'application/json'
-      }
-    });
-    if (response.status === 200) {
-      console.log("Logout successful");
-      res.clearCookie('userToken'); // Clear the token cookie
-      res.redirect('/auth');
-    } else {
-      console.log("Logout failed");
-      res.status(400).send("Logout failed");
-    }
-  } catch (err) {
-    console.error("Error during logout:", err);
-    res.status(500).send("Server error during logout");
-  }
+// Home page route
+app.get('/', checkAuth, (req, res) => {
+  console.log("Rendering home page");
+  res.render('Home', { userToken: req.cookies.userToken });
 });
 
-
-
-// Logout route
-app.get('/logout', (req, res) => {
-  // For session-based logout (if applicable):
-  // req.session.destroy((err) => {
-  //   if (err) {
-  //     return res.status(500).send('Failed to log out');
-  //   }
-  //   res.redirect('/login'); // Redirect to the login page or home page
-  // });
-
-  // Clear the token in case it's stored in a cookie (optional, if relevant)
-  res.clearCookie('userToken');
-  res.redirect('/login'); // Redirect to login page or home page
-});
-
-
-// Render the home page if authenticated
-// Home Route  
-app.get('/', checkAuth, (req, res) => {  
-  console.log("Rendering home page");  
-  // Render the home page and pass the userToken from cookies  
-  res.render('Home', { userToken: req.cookies.userToken });  
-});  
-
-// Quiz Route  
+// Quiz page route (GET request)
 app.get('/quiz', checkAuth, async (req, res) => {  
   console.log("Fetching quiz questions...");  
   res.clearCookie('quizQuestions');  
 
   try {  
     const response = await fetch(`${API_BASE_URL}quizzes/`, {  
-      method: 'GET', // It's good practice to specify the method explicitly  
+      method: 'GET',
       headers: {  
-        'Authorization': `Bearer ${req.cookies.userToken}`, // Include the user token in the headers  
-        'Content-Type': 'application/json', // Optional: Set content type  
+        'Authorization': `Bearer ${req.cookies.userToken}`, 
+        'Content-Type': 'application/json', 
       },  
-      credentials: 'include' // Proper placement of credentials within fetch options  
+      credentials: 'include' // Ensures credentials are included
     });  
 
     if (response.status === 200) {  
       const questions = await response.json();  
       console.log("Quiz questions fetched:", questions);  
-      // Store questions in a cookie for 1 day  
+    
       res.cookie('quizQuestions', JSON.stringify(questions), {  
         httpOnly: true,  
-        maxAge: 24 * 60 * 60 * 1000 // 1 day in milliseconds  
+        maxAge: 24 * 60 * 60 * 1000 // Cookie expiration of 24 hours
       });  
       res.render('Quiz', {  
         questions: questions,  
         userToken: req.cookies.userToken,  
-        userAnswers: [] // User's answers will be passed from cookies later  
+        userAnswers: []  
       });  
     } else {  
       console.log("No questions available or Not found");  
@@ -212,120 +162,95 @@ app.get('/quiz', checkAuth, async (req, res) => {
   }  
 });
 
+// Quiz results submission route (POST request)
+app.post('/quiz', async (req, res) => {
+  console.log('--- Handling /quiz POST request ---');
 
-// in rendering endquiz i want also to display the question image.if they also.  to diplay image for option if available. base on this question structure.
-//const questions = [{"id":3,"question":"what is the king of the jungle","question_image":null,
-   // "answers":[{"id":21,"answer_text":"hen","is_correct":false,"answer_image":null},
-   // {"id":22,"answer_text":"lion","is_correct":true,"answer_image":null},
-   // {"id":23,"answer_text":"rat","is_correct":false,"answer_image":null},
-  //  {"id":24,"answer_text":"cow","is_correct":false,"answer_image":null}]}]. also srtcuture of results 
+  const { answers: rawAnswers } = req.body;
+  let answers;
 
-  // [{"question_id":10,"selected_answer_id":49,"correct_answer_id":49,"is_correct":true},{"question_id":9,"selected_answer_id":46,"correct_answer_id":46,"is_correct":true}]
+  const question_first = JSON.parse(req.cookies.quizQuestions || '[]');
+  const questions = Array.isArray(question_first) ? question_first : [];
+  console.log(`${JSON.stringify(questions)}`);
 
+  try {
+    answers = typeof rawAnswers === 'string' ? JSON.parse(rawAnswers) : rawAnswers;
+    console.log(`Parsed answers: ${JSON.stringify(answers)}`);
+  } catch (err) {
+    console.error('Error parsing answers:', err.message);
+    return res.status(400).json({ error: 'Invalid answers format' });
+  }
 
+  if (!answers || !Array.isArray(answers) || answers.length === 0) {
+    return res.status(400).json({ error: 'Answers cannot be empty or invalid' });
+  }
 
-  app.post('/quiz', async (req, res) => {
-    console.log('--- Handling /quiz POST request ---');
-  
-    const { answers: rawAnswers } = req.body;
-    let answers;
-  
-    // Get the questions from cookies
-    const question_first = JSON.parse(req.cookies.quizQuestions || '[]');
-    const questions = Array.isArray(question_first) ? question_first : [];
-    console.log(`${JSON.stringify(questions)}`);
-  
-    // Parse the answers string if necessary
-    try {
-      answers = typeof rawAnswers === 'string' ? JSON.parse(rawAnswers) : rawAnswers;
-      console.log(`Parsed answers: ${JSON.stringify(answers)}`);
-    } catch (err) {
-      console.error('Error parsing answers:', err.message);
-      return res.status(400).json({ error: 'Invalid answers format' });
+  const userToken = req.cookies.userToken;
+  if (!userToken) {
+    return res.status(401).json({ error: 'User not authenticated' });
+  }
+
+  try {
+    const response = await axios.post(  
+      `${API_BASE_URL}quizzes/`,  
+      { answers },  
+      {  
+        headers: {  
+          Authorization: `Bearer ${userToken}`,  
+          'Content-Type': 'application/json',  
+        },  
+        withCredentials: true 
+      }  
+    ); 
+    const { results } = response.data;
+    console.log(`API results: ${JSON.stringify(results)}`);
+
+    if (response.status === 201 && results) {
+      const enhancedResults = results.map((result) => {
+        const question = questions.find((q) => q.id === result.question_id);
+
+        if (!question) return null;
+
+        const selectedOption = question.answers.find((opt) => opt.id === result.selected_answer_id);
+        const correctOption = question.answers.find((opt) => opt.id === result.correct_answer_id);
+
+        return {
+          question_text: question.question || `Question ID ${result.question_id}`,
+          question_image: question.question_image || null,
+          correct_answer: correctOption ? correctOption.answer_text : 'N/A',
+          correct_answer_image: correctOption ? correctOption.answer_image : null,
+          selected_answer: selectedOption ? selectedOption.answer_text : 'N/A',
+          selected_answer_image: selectedOption ? selectedOption.answer_image : null,
+          is_correct: result.is_correct,
+          answers: question.answers.map((option) => ({
+            answer_text: option.answer_text,
+            answer_image: option.answer_image,
+            is_correct: option.is_correct,
+            selected: option.id === result.selected_answer_id,
+          })),
+        };
+      }).filter((result) => result !== null);
+
+      const score = enhancedResults.filter((r) => r.is_correct).length;
+      const passingScore = 12;
+      const passed = score >= passingScore;
+
+      return res.render('Endquiz', {
+        score,
+        results: enhancedResults,
+        passed,
+      });
+    } else {
+      res.status(400).send('Error submitting quiz');
     }
-  
-    // Validate answers
-    if (!answers || !Array.isArray(answers) || answers.length === 0) {
-      return res.status(400).json({ error: 'Answers cannot be empty or invalid' });
-    }
-  
-    // Validate userToken from cookies
-    const userToken = req.cookies.userToken;
-    if (!userToken) {
-      return res.status(401).json({ error: 'User not authenticated' });
-    }
-  
-try {  
-  // Submit answers via API  
-  const response = await axios.post(  
-    `${API_BASE_URL}quizzes/`,  
-    { answers },  
-    {  
-      headers: {  
-        Authorization: `Bearer ${userToken}`,  
-        'Content-Type': 'application/json',  
-      },  
-      withCredentials: true // Use withCredentials instead of credentials  
-    }  
-  ); 
-  
-      const { results } = response.data;
-      console.log(`API results: ${JSON.stringify(results)}`);
-  
-      if (response.status === 201 && results) {
-        // Enhance results with question and answer details
-        const enhancedResults = results.map((result) => {
-          const question = questions.find((q) => q.id === result.question_id);
-  
-          if (!question) return null;
-  
-          const selectedOption = question.answers.find((opt) => opt.id === result.selected_answer_id);
-          const correctOption = question.answers.find((opt) => opt.id === result.correct_answer_id);
-  
-          return {
-            question_text: question.question || `Question ID ${result.question_id}`,
-            question_image: question.question_image || null,
-            correct_answer: correctOption ? correctOption.answer_text : 'N/A',
-            correct_answer_image: correctOption ? correctOption.answer_image : null,
-            selected_answer: selectedOption ? selectedOption.answer_text : 'N/A',
-            selected_answer_image: selectedOption ? selectedOption.answer_image : null,
-            is_correct: result.is_correct,
-            answers: question.answers.map((option) => ({
-              answer_text: option.answer_text,
-              answer_image: option.answer_image,
-              is_correct: option.is_correct,
-              selected: option.id === result.selected_answer_id,
-            })),
-          };
-        }).filter((result) => result !== null);
-  
-        // Calculate score
-        const score = enhancedResults.filter((r) => r.is_correct).length;
-        const passingScore = 12;
-        const passed = score >= passingScore;
-  
-        // Render the Endquiz page
-        return res.render('Endquiz', {
-          score,
-          results: enhancedResults,
-          passed,
-        });
-      } else {
-        res.status(400).send('Error submitting quiz');
-      }
-    } catch (error) {
-      console.error('Error during API request:', error.message);
-      return res.status(500).json({ error: 'Error submitting quiz' });
-    }
-  });
-  
+  } catch (error) {
+    console.error('Error during API request:', error.message);
+    return res.status(500).json({ error: 'Error submitting quiz' });
+  }
+});
 
-
+// Server startup
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-
-
-    
-
